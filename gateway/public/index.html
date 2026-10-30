@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zero Trust Security Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <main class="mx-auto max-w-6xl px-4 py-8">
+    <header class="mb-8">
+      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-400">NIST SP 800-207 · Praktikum</p>
+      <h1 class="mt-2 text-3xl font-bold md:text-4xl">Zero Trust Security Demo</h1>
+      <p class="mt-2 max-w-3xl text-slate-400">Setiap request dievaluasi oleh Policy Engine berdasarkan identitas, device, role, kepemilikan data, dan konteks waktu. Semua request aplikasi melewati API Gateway.</p>
+    </header>
+
+    <section class="grid gap-6 lg:grid-cols-2">
+      <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+        <h2 class="text-xl font-semibold">1. Autentikasi</h2>
+        <form id="loginForm" class="mt-4 space-y-3">
+          <label class="block text-sm text-slate-300">Username
+            <input id="username" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" autocomplete="username">
+          </label>
+          <label class="block text-sm text-slate-300">Password
+            <input id="password" type="password" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" autocomplete="current-password">
+          </label>
+          <label class="block text-sm text-slate-300">X-Device-ID (dapat diubah untuk uji penolakan)
+            <input id="deviceId" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm">
+          </label>
+          <div class="flex flex-wrap gap-2">
+            <button class="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950 hover:bg-cyan-400" type="submit">Login</button>
+            <button class="rounded-lg border border-slate-600 px-4 py-2 hover:bg-slate-800" id="logoutButton" type="button">Logout</button>
+            <button class="rounded-lg border border-slate-600 px-4 py-2 hover:bg-slate-800" id="refreshButton" type="button">Refresh token</button>
+          </div>
+        </form>
+        <div class="mt-4">
+          <p class="mb-2 text-sm text-slate-400">Quick preset</p>
+          <div class="flex flex-wrap gap-2">
+            <button class="preset rounded-md bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700" data-user="admin" data-password="Admin123!" data-device="device-admin-001">Admin</button>
+            <button class="preset rounded-md bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700" data-user="dosen1" data-password="Dosen123!" data-device="device-dosen1-001">Dosen 1</button>
+            <button class="preset rounded-md bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700" data-user="dosen2" data-password="Dosen123!" data-device="device-dosen2-001">Dosen 2</button>
+            <button class="preset rounded-md bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700" data-user="mhs1" data-password="Mhs123!" data-device="device-mhs1-001">Mahasiswa 1</button>
+          </div>
+        </div>
+        <p id="sessionStatus" class="mt-4 text-sm text-slate-400">Belum login.</p>
+      </article>
+
+      <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+        <h2 class="text-xl font-semibold">2. Uji Endpoint</h2>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <button id="getNilai" class="rounded-lg bg-indigo-600 px-4 py-3 font-medium hover:bg-indigo-500">GET /nilai</button>
+          <div class="rounded-lg border border-slate-700 p-3">
+            <label class="text-xs text-slate-400">ID nilai / nilai baru</label>
+            <div class="mt-1 flex gap-2">
+              <input id="nilaiId" value="1" class="w-20 rounded border border-slate-700 bg-slate-950 px-2 py-2">
+              <input id="nilaiBaru" type="number" min="0" max="100" value="90" class="min-w-0 flex-1 rounded border border-slate-700 bg-slate-950 px-2 py-2">
+            </div>
+            <button id="putNilai" class="mt-2 w-full rounded-lg bg-amber-600 px-3 py-2 font-medium hover:bg-amber-500">PUT /nilai/:id</button>
+          </div>
+          <div class="rounded-lg border border-slate-700 p-3">
+            <label class="text-xs text-slate-400">ID kelas</label>
+            <input id="kelasId" value="1" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-2">
+            <button id="finalisasi" class="mt-2 w-full rounded-lg bg-rose-700 px-3 py-2 font-medium hover:bg-rose-600">POST /kelas/:id/finalisasi</button>
+          </div>
+          <div class="rounded-lg border border-slate-700 p-3">
+            <label class="text-xs text-slate-400">NIM transkrip</label>
+            <input id="nim" value="230001" class="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-2">
+            <button id="getTranskrip" class="mt-2 w-full rounded-lg bg-emerald-700 px-3 py-2 font-medium hover:bg-emerald-600">GET /transkrip/:nim</button>
+          </div>
+        </div>
+        <p class="mt-3 text-xs leading-5 text-slate-500">Dosen demo: kelas 1 untuk Dosen 1, kelas 2 untuk Dosen 2. Perubahan/finalisasi mengikuti jam akses pada .env. Seed berisi nilai dan transkrip awal; kelas belum difinalisasi.</p>
+      </article>
+    </section>
+
+    <section class="mt-6 grid gap-6 lg:grid-cols-2">
+      <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Respons API</h2>
+          <button id="clearResponse" class="text-sm text-slate-400 hover:text-white">Bersihkan</button>
+        </div>
+        <pre id="response" class="mt-3 min-h-44 overflow-auto rounded-lg bg-slate-950 p-4 text-sm text-cyan-200">Belum ada request.</pre>
+      </article>
+      <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Audit Log</h2>
+          <button id="refreshAudit" class="text-sm text-cyan-400 hover:text-cyan-300">Muat ulang</button>
+        </div>
+        <div id="auditLogs" class="mt-3 max-h-80 space-y-2 overflow-auto text-sm text-slate-300">Login sebagai Admin untuk melihat log.</div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const state = { accessToken: null, refreshToken: null, user: null };
+    const responseBox = document.getElementById('response');
+    const deviceInput = document.getElementById('deviceId');
+    const statusText = document.getElementById('sessionStatus');
+
+    function showResponse(title, payload, status) {
+      responseBox.textContent = JSON.stringify({ request: title, httpStatus: status, response: payload }, null, 2);
+    }
+
+    async function api(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      headers.set('X-Device-ID', deviceInput.value.trim());
+      if (state.accessToken) headers.set('Authorization', `Bearer ${state.accessToken}`);
+      if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+      const response = await fetch(path, { ...options, headers });
+      const payload = await response.json().catch(() => ({ reason: 'Respons bukan JSON.' }));
+      showResponse(`${options.method || 'GET'} ${path}`, payload, response.status);
+      await loadAudit();
+      return { response, payload };
+    }
+
+    async function loadAudit() {
+      if (!state.accessToken || !state.user || state.user.role !== 'admin') {
+        document.getElementById('auditLogs').textContent = 'Login sebagai Admin untuk melihat log.';
+        return;
+      }
+      try {
+        const headers = { Authorization: `Bearer ${state.accessToken}`, 'X-Device-ID': deviceInput.value.trim() };
+        const response = await fetch('/audit?limit=30', { headers });
+        const payload = await response.json();
+        const container = document.getElementById('auditLogs');
+        if (!response.ok || !payload.logs) {
+          container.textContent = payload.reason || 'Audit log tidak dapat dimuat.';
+          return;
+        }
+        container.innerHTML = '';
+        for (const log of payload.logs) {
+          const item = document.createElement('div');
+          item.className = 'rounded-lg border border-slate-800 bg-slate-950 p-3';
+          const color = log.decision === 'ALLOW' ? 'text-emerald-400' : 'text-rose-400';
+          item.innerHTML = `<div class="flex justify-between gap-2"><span class="font-mono">${escapeHtml(log.method)} ${escapeHtml(log.path)}</span><strong class="${color}">${escapeHtml(log.decision)}</strong></div><div class="mt-1 text-xs text-slate-500">${escapeHtml(log.username || 'unknown')} · ${escapeHtml(log.reason)} · ${escapeHtml(String(log.created_at))}</div>`;
+          container.appendChild(item);
+        }
+      } catch (error) {
+        document.getElementById('auditLogs').textContent = error.message;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[character]);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const { response, payload } = await api('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        })
+      });
+      if (response.ok && payload.decision === 'ALLOW') {
+        state.accessToken = payload.accessToken;
+        state.refreshToken = payload.refreshToken;
+        state.user = payload.user;
+        statusText.textContent = `Login: ${payload.user.fullName} (${payload.user.role}) · access token berlaku 10 menit.`;
+        await loadAudit();
+      }
+    });
+
+    document.querySelectorAll('.preset').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.getElementById('username').value = button.dataset.user;
+        document.getElementById('password').value = button.dataset.password;
+        deviceInput.value = button.dataset.device;
+      });
+    });
+
+    document.getElementById('getNilai').addEventListener('click', () => api('/nilai'));
+    document.getElementById('putNilai').addEventListener('click', () => api(`/nilai/${encodeURIComponent(document.getElementById('nilaiId').value)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nilai: Number(document.getElementById('nilaiBaru').value) })
+    }));
+    document.getElementById('finalisasi').addEventListener('click', () => api(`/kelas/${encodeURIComponent(document.getElementById('kelasId').value)}/finalisasi`, {
+      method: 'POST',
+      body: JSON.stringify({})
+    }));
+    document.getElementById('getTranskrip').addEventListener('click', () => api(`/transkrip/${encodeURIComponent(document.getElementById('nim').value)}`));
+    document.getElementById('refreshAudit').addEventListener('click', loadAudit);
+    document.getElementById('clearResponse').addEventListener('click', () => {
+      responseBox.textContent = 'Belum ada request.';
+    });
+
+    document.getElementById('refreshButton').addEventListener('click', async () => {
+      if (!state.refreshToken) {
+        showResponse('POST /auth/refresh', { decision: 'DENY', reason: 'Belum login.' }, 401);
+        return;
+      }
+      const result = await api('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: state.refreshToken })
+      });
+      if (result.response.ok && result.payload.decision === 'ALLOW') {
+        state.accessToken = result.payload.accessToken;
+        state.refreshToken = result.payload.refreshToken;
+        statusText.textContent = `Login: ${state.user.fullName} (${state.user.role}) · token berhasil diperbarui.`;
+      }
+    });
+
+    document.getElementById('logoutButton').addEventListener('click', async () => {
+      if (!state.refreshToken) {
+        showResponse('POST /auth/logout', { decision: 'DENY', reason: 'Belum login.' }, 401);
+        return;
+      }
+      await api('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: state.refreshToken }) });
+      state.accessToken = null;
+      state.refreshToken = null;
+      state.user = null;
+      statusText.textContent = 'Logout. Refresh token dicabut.';
+      document.getElementById('auditLogs').textContent = 'Login sebagai Admin untuk melihat log.';
+    });
+
+    setInterval(loadAudit, 5000);
+  </script>
+</body>
+</html>

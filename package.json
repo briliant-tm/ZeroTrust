@@ -1,0 +1,23 @@
+{
+  "name": "zero-trust-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Educational NIST SP 800-207-inspired Zero Trust microservices demonstration",
+  "main": "gateway/server.js",
+  "scripts": {
+    "seed": "node seed.js",
+    "gateway": "node gateway/server.js",
+    "nilai": "node services/nilai/server.js",
+    "transkrip": "node services/transkrip/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.3",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.12.0"
+  }
+}
