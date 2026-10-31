@@ -41,6 +41,7 @@ app.post('/auth/service', (req, res) => handleAuth(req, res, policyEngine.issueS
 
 app.use(['/nilai', '/kelas', '/transkrip', '/audit'], async (req, res, next) => {
   let result;
+  const pathname = new URL(req.originalUrl || req.url, 'http://localhost').pathname;
   try {
     result = await policyEngine.evaluate(req);
     await recordDecision(
@@ -57,7 +58,7 @@ app.use(['/nilai', '/kelas', '/transkrip', '/audit'], async (req, res, next) => 
   if (!result.allowed) {
     return res.status(result.status || 403).json({ decision: 'DENY', reason: result.reason });
   }
-  if (req.path === '/audit' && req.method === 'GET') {
+  if (pathname === '/audit' && req.method === 'GET') {
     try {
       const logs = await auditLogger.getRecentLogs(req.query.limit);
       return res.json({ decision: 'ALLOW', logs });

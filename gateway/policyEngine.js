@@ -226,7 +226,7 @@ async function authenticate(req, expectedRole) {
 
 async function evaluate(req) {
   const method = req.method.toUpperCase();
-  const pathname = req.path;
+  const pathname = new URL(req.originalUrl || req.url || req.path, 'http://localhost').pathname;
 
   if (method === 'POST' && pathname === '/transkrip/sinkron') {
     const token = getBearerToken(req);
